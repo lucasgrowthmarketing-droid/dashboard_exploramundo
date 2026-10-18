@@ -87,7 +87,7 @@ async function getYouTube(from, to) {
 }
 
 async function getAds(from, to) {
-  if (!process.env.GOOGLE_ADS_DEVELOPER_TOKEN || !process.env.GOOGLE_ADS_CUSTOMER_ID) {
+  if (!process.env.GOOGLE_ADS_CUSTOMER_ID) {
     throw new Error('Credenciais Google Ads pendentes');
   }
   const token = await googleAccessToken(process.env.GOOGLE_ADS_REFRESH_TOKEN);
@@ -95,7 +95,6 @@ async function getAds(from, to) {
   const query = `SELECT campaign.id, campaign.name, campaign.advertising_channel_type, segments.date, metrics.impressions, metrics.clicks, metrics.video_trueview_views, metrics.cost_micros FROM campaign WHERE segments.date BETWEEN '${from}' AND '${to}' AND campaign.status != 'REMOVED'`;
   const headers = {
     Authorization: `Bearer ${token}`,
-    'developer-token': process.env.GOOGLE_ADS_DEVELOPER_TOKEN,
     'Content-Type': 'application/json'
   };
   if (process.env.GOOGLE_ADS_LOGIN_CUSTOMER_ID) {
