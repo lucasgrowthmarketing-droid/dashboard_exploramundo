@@ -92,7 +92,7 @@ async function getAds(from, to) {
   }
   const token = await googleAccessToken(process.env.GOOGLE_ADS_REFRESH_TOKEN);
   const customer = process.env.GOOGLE_ADS_CUSTOMER_ID.replace(/\D/g, '');
-  const query = `SELECT campaign.id, campaign.name, campaign.advertising_channel_type, segments.date, metrics.impressions, metrics.clicks, metrics.video_views, metrics.cost_micros FROM campaign WHERE segments.date BETWEEN '${from}' AND '${to}' AND campaign.status != 'REMOVED'`;
+  const query = `SELECT campaign.id, campaign.name, campaign.advertising_channel_type, segments.date, metrics.impressions, metrics.clicks, metrics.video_trueview_views, metrics.cost_micros FROM campaign WHERE segments.date BETWEEN '${from}' AND '${to}' AND campaign.status != 'REMOVED'`;
   const headers = {
     Authorization: `Bearer ${token}`,
     'developer-token': process.env.GOOGLE_ADS_DEVELOPER_TOKEN,
@@ -113,12 +113,12 @@ async function getAds(from, to) {
     const day = row.segments?.date;
     const metric = row.metrics || {};
     const point = byCampaign.get(name) || { name, views: 0, spend: 0 };
-    point.views += number(metric.videoViews);
+    point.views += number(metric.videoTrueviewViews);
     point.spend += number(metric.costMicros) / 1e6;
     byCampaign.set(name, point);
     if (day) {
       const daily = byDay.get(day) || { day, views: 0, spend: 0 };
-      daily.views += number(metric.videoViews);
+      daily.views += number(metric.videoTrueviewViews);
       daily.spend += number(metric.costMicros) / 1e6;
       byDay.set(day, daily);
     }
@@ -126,7 +126,7 @@ async function getAds(from, to) {
   return {
     spend: sum(youtubeRows.map(row => ({ value: number(row.metrics?.costMicros) / 1e6 })), 'value'),
     impressions: sum(youtubeRows.map(row => ({ value: row.metrics?.impressions })), 'value'),
-    views: sum(youtubeRows.map(row => ({ value: row.metrics?.videoViews })), 'value'),
+    views: sum(youtubeRows.map(row => ({ value: row.metrics?.videoTrueviewViews })), 'value'),
     clicks: sum(youtubeRows.map(row => ({ value: row.metrics?.clicks })), 'value'),
     campaigns: [...byCampaign.values()].sort((a, b) => b.views - a.views).slice(0, 5),
     series: [...byDay.values()].sort((a, b) => a.day.localeCompare(b.day))
