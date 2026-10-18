@@ -62,6 +62,9 @@ function render() {
   const d = state.data;
   const o = d[activeNetwork];
   const organicViews = d.instagram.views + d.facebook.views + d.youtube.views;
+  const organicStatuses = ['instagram', 'facebook', 'youtube'].map(key => state.status[key]);
+  const comparableOrganic = organicStatuses.every(item => item.state === 'live') || organicStatuses.every(item => item.state === 'snapshot');
+  const comparableFollowers = state.status.instagram.state === state.status.facebook.state;
   const totalConnections = Object.values(state.status).filter(item => item.state === 'live').length;
   const organicBars = [
     ['Instagram', d.instagram.views, 'instagram'],
@@ -82,14 +85,14 @@ function render() {
         <header class="topbar"><div class="top-title"><span class="eyebrow">PAINEL DE RESULTADOS</span><h1>Explora Mundo <span>✦</span></h1></div><div class="top-actions"><div class="date-switch" role="group" aria-label="Período">${[7,28,90].map(value => `<button data-days="${value}" class="${days === value ? 'selected' : ''}" aria-pressed="${days === value}">${value} dias</button>`).join('')}</div><button id="refresh" class="refresh" title="Atualizar dados" aria-label="Atualizar dados">${loading ? '◌' : '↻'}</button></div></header>
         <div class="data-banner"><span class="pulse ${totalConnections ? 'on' : ''}"></span><b>${totalConnections ? `${totalConnections} fonte${totalConnections > 1 ? 's' : ''} atualizando automaticamente` : 'Retrato histórico'}</b><span>${totalConnections ? 'Consulta automática a cada 5 min' : 'As APIs serão ativadas quando as contas forem autorizadas'}</span><button id="connection-detail">Ver fontes ↗</button></div>
         <section class="overview" aria-label="Indicadores principais">
-          ${metric('Orgânico · visualizações', short(organicViews), 'Instagram + Facebook + YouTube', 'purple')}
+          ${metric('Orgânico · visualizações', comparableOrganic ? short(organicViews) : '—', comparableOrganic ? 'Instagram + Facebook + YouTube' : 'Fontes em períodos diferentes', 'purple')}
           ${metric('YouTube · mídia paga', short(d.youtube.paidViews), `Studio · ${period('youtube')}`, 'pink')}
           ${metric('Investimento', money(d.ads.spend), `Google Ads · ${period('ads')}`, 'yellow')}
-          ${metric('Seguidores', fmt(d.instagram.followers + d.facebook.followers), 'Instagram + Facebook', 'green')}
+          ${metric('Seguidores', comparableFollowers ? fmt(d.instagram.followers + d.facebook.followers) : '—', comparableFollowers ? 'Instagram + Facebook' : 'Fontes em datas diferentes', 'green')}
         </section>
         <section class="content-grid" id="organico">
           <article class="panel trend-panel"><div class="panel-heading"><div><span class="eyebrow">ORGÂNICO</span><h2>Evolução <span>↗</span></h2></div><div class="network-tabs" role="tablist" aria-label="Rede social">${[['instagram','Instagram'],['facebook','Facebook'],['youtube','YouTube']].map(([key,label]) => `<button role="tab" data-network="${key}" aria-selected="${activeNetwork === key}" class="${activeNetwork === key ? 'selected' : ''}">${label}</button>`).join('')}</div></div><div class="trend-stat"><strong>${fmt(o.views)}</strong><span>visualizações ${status(activeNetwork)}</span></div>${lineChart(o.series, activeNetwork === 'youtube' ? 'organic' : 'value', activeNetwork === 'instagram' ? '#a34dc3' : activeNetwork === 'youtube' ? '#ff6679' : '#6390eb')}<div class="panel-foot"><span>${period(activeNetwork)}</span>${external(activeNetwork)}</div></article>
-          <article class="panel split-panel"><div class="panel-heading"><div><span class="eyebrow">MIX DE CANAIS</span><h2>Onde acontece</h2></div><span class="decor-star">✳</span></div><div class="organic-bars">${organicBars.map(([name,value,key]) => `<div class="bar-item"><div><b>${name}</b><strong>${fmt(value)}</strong></div><span class="bar-track"><i class="${key}" style="width:${Math.max(2, value / maxOrganic * 100)}%"></i></span><small>${period(key)}</small></div>`).join('')}</div><div class="split-footer"><span>Visualizações orgânicas</span><strong>${fmt(organicViews)}</strong></div></article>
+          <article class="panel split-panel"><div class="panel-heading"><div><span class="eyebrow">MIX DE CANAIS</span><h2>Onde acontece</h2></div><span class="decor-star">✳</span></div><div class="organic-bars">${organicBars.map(([name,value,key]) => `<div class="bar-item"><div><b>${name}</b><strong>${fmt(value)}</strong></div><span class="bar-track"><i class="${key}" style="width:${Math.max(2, value / maxOrganic * 100)}%"></i></span><small>${period(key)}</small></div>`).join('')}</div><div class="split-footer"><span>Visualizações orgânicas</span><strong>${comparableOrganic ? fmt(organicViews) : '—'}</strong></div></article>
         </section>
         <section class="network-grid" aria-label="Detalhes de canais">
           <article class="mini-card instagram"><div class="mini-card-head"><span class="platform-icon">◎</span><b>Instagram</b>${status('instagram')}</div><div class="mini-values"><div><strong>${fmt(d.instagram.views)}</strong><span>Visualizações</span></div><div><strong>${fmt(d.instagram.interactions)}</strong><span>Interações</span></div><div><strong>${fmt(d.instagram.followers)}</strong><span>Seguidores</span></div></div>${external('instagram')}</article>
