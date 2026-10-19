@@ -49,7 +49,7 @@ const duration = seconds => seconds == null ? '—' : `${Math.floor(seconds / 60
 const hours = value => value == null ? '—' : `${decimal(value)}h`;
 const positive = value => value == null ? '—' : `+${fmt(value)}`;
 const esc = value => String(value).replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
-const status = name => `<span class="source-state ${state.status[name].state}"><i></i>${state.status[name].state === 'live' ? 'Ao vivo' : 'Histórico'}</span>`;
+const status = name => `<span class="source-state ${state.status[name].processing ? 'processing' : state.status[name].state}"><i></i>${state.status[name].processing ? 'Parcial' : state.status[name].state === 'live' ? 'Ao vivo' : 'Histórico'}</span>`;
 const period = name => esc(state.status[name].period);
 const external = name => `<a class="source-arrow" href="${links[name]}" target="_blank" rel="noopener noreferrer" aria-label="Abrir ${name} na plataforma">↗</a>`;
 const localDay = date => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit' }).format(date);
@@ -100,9 +100,11 @@ function youtubeDetail(d) {
   const yt = d.youtube, ads = d.ads;
   const videos = yt.videos || [];
   const maxViews = Math.max(...videos.map(video => video.views), 1);
+  const gainsPending = Boolean(state.period?.to && (!yt.subscribersThrough || yt.subscribersThrough < state.period.to));
+  const gainsNote = state.status.youtube.state !== 'live' ? '' : gainsPending ? `Até ${yt.subscribersThrough ? yt.subscribersThrough.slice(8, 10) + '/' + yt.subscribersThrough.slice(5, 7) : 'a última data disponível'} · dias recentes em processamento` : 'Período completo';
   return `<section class="detail-view youtube-detail" data-view="youtube">
     ${sectionHeader('CANAL EM FOCO', 'YouTube <span>✦</span>', 'youtube', 'Conteúdo, audiência e investimento em um só lugar.')}
-    <div class="channel-hero"><div class="channel-hero-main"><span>INSCRITOS NO CANAL</span><strong>${yt.subscribers == null ? '—' : fmt(yt.subscribers)}</strong><small>Total atual do canal</small></div><div class="channel-hero-side"><div><span>Ganhos no período</span><b>${positive(yt.subscribersGained)}</b></div></div></div>
+    <div class="channel-hero"><div class="channel-hero-main"><span>INSCRITOS NO CANAL</span><strong>${yt.subscribers == null ? '—' : fmt(yt.subscribers)}</strong><small>Contagem pública atual · arredondada pelo YouTube</small></div><div class="channel-hero-side"><div><span>${gainsPending ? 'Ganhos parciais' : 'Ganhos no período'}</span><b>${yt.subscribersThrough || !gainsPending ? positive(yt.subscribersGained) : '—'}</b><small>${gainsNote}</small></div></div></div>
     <div class="detail-subhead"><div><span class="eyebrow">AUDIÊNCIA</span><h3>Conteúdo em números</h3></div><span>${period('youtube')}</span></div>
     <div class="detail-metrics">${metric('Visualizações totais', short(yt.totalViews), 'Studio · todo o tráfego', 'purple')}${metric('Visualizações orgânicas', fmt(yt.views), 'Sem publicidade', 'green')}${metric('Views de publicidade', short(yt.paidViews), 'Fonte de tráfego do Studio', 'pink')}${metric('Curtidas', fmt(yt.likes), 'Nos vídeos do canal', 'yellow')}${metric('Horas assistidas', hours(yt.totalWatchHours), 'Todo o tráfego', 'purple')}${metric('Horas orgânicas', hours(yt.watchHours), 'Sem publicidade', 'green')}${metric('Duração média', duration(yt.averageViewDuration), 'Por visualização', 'pink')}${metric('Compartilhamentos', fmt(yt.shares), 'Nos vídeos do canal', 'yellow')}</div>
     <article class="panel detail-chart-panel"><div class="panel-heading"><div><span class="eyebrow">EVOLUÇÃO</span><h3>Orgânico × publicidade</h3></div><div class="legend"><span><i class="organic"></i> Orgânico</span><span><i class="paid"></i> Publicidade</span></div></div>${sourceChart(yt.series)}<div class="panel-foot"><span>Visualizações por dia no YouTube Studio</span><span>${period('youtube')}</span></div></article>

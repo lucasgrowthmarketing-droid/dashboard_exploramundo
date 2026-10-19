@@ -83,10 +83,11 @@ async function getYouTube(from, to) {
     ids: `channel==${channelId}`, startDate: from, endDate: to,
     dimensions: 'day,insightTrafficSourceType', metrics: 'views,estimatedMinutesWatched', sort: 'day'
   });
-  const [data, totals, videos] = await Promise.all([
+  const [data, totals, videos, subscriberDays] = await Promise.all([
     jsonFetch(`https://youtubeanalytics.googleapis.com/v2/reports?${params}`, { headers: { Authorization: `Bearer ${token}` } }),
     report({ metrics: 'views,estimatedMinutesWatched,likes,comments,shares,subscribersGained,averageViewDuration' }),
-    report({ dimensions: 'video', metrics: 'views,estimatedMinutesWatched,likes,comments,shares,subscribersGained', sort: '-views', maxResults: '10' })
+    report({ dimensions: 'video', metrics: 'views,estimatedMinutesWatched,likes,comments,shares,subscribersGained', sort: '-views', maxResults: '10' }),
+    report({ dimensions: 'day', metrics: 'subscribersGained', sort: 'day' })
   ]);
   const videoRows = (videos.rows || []).map(([id, views, minutes, likes, comments, shares, gained]) => ({
     id, views: number(views), watchHours: Math.round(number(minutes) / 6) / 10,
@@ -110,13 +111,17 @@ async function getYouTube(from, to) {
   const series = [...new Set([...organic.keys(), ...paid.keys()])].sort().map(day => ({
     day, organic: organic.get(day) || 0, paid: paid.get(day) || 0
   }));
+  const subscriberRows = subscriberDays.rows || [];
+  const subscribersThrough = subscriberRows.at(-1)?.[0] || null;
+  const dataThrough = [series.at(-1)?.day, subscribersThrough].filter(Boolean).sort()[0] || null;
   return {
     views: [...organic.values()].reduce((a, b) => a + b, 0),
     paidViews: [...paid.values()].reduce((a, b) => a + b, 0),
     watchHours: Math.round(organicMinutes / 6) / 10,
     totalViews: number(totals.rows?.[0]?.[0]), totalWatchHours: Math.round(number(totals.rows?.[0]?.[1]) / 6) / 10,
     likes: number(totals.rows?.[0]?.[2]), comments: number(totals.rows?.[0]?.[3]), shares: number(totals.rows?.[0]?.[4]),
-    subscribersGained: number(totals.rows?.[0]?.[5]),
+    subscribersGained: subscriberRows.reduce((total, row) => total + number(row[1]), 0),
+    subscribersThrough, dataThrough,
     averageViewDuration: number(totals.rows?.[0]?.[6]),
     subscribers: metadata[0].status === 'fulfilled' && metadata[0].value.items?.[0]?.statistics?.subscriberCount != null
       ? number(metadata[0].value.items[0].statistics.subscriberCount) : null,
@@ -270,7 +275,8 @@ export default async function handler(request, response) {
     const name = names[index];
     if (result.status === 'fulfilled') {
       data[name] = result.value;
-      status[name] = { state: 'live', period: `${period.from} – ${period.to}` };
+      const actualTo = name === 'youtube' ? result.value.dataThrough || period.to : period.to;
+      status[name] = { state: 'live', period: `${period.from} – ${actualTo}`, processing: name === 'youtube' && (!result.value.dataThrough || actualTo < period.to) };
     } else {
       data[name] = SNAPSHOT[name];
       status[name] = { state: 'snapshot', period: SOURCE_DATES[name] };
