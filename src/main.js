@@ -29,6 +29,13 @@ const links = {
 
 let state = snapshot;
 let days = 28;
+let customRange = null;
+let rangeDraft = null;
+let calendarOpen = false;
+let filterError = '';
+let loadError = '';
+let activeRequest = null;
+let requestVersion = 0;
 let activeNetwork = 'instagram';
 let loading = false;
 let currentView = ['visao', 'youtube', 'instagram', 'facebook'].includes(location.hash.slice(1)) ? location.hash.slice(1) : location.hash === '#pago' ? 'youtube' : 'visao';
@@ -45,6 +52,15 @@ const esc = value => String(value).replace(/[&<>"']/g, char => ({ '&': '&amp;', 
 const status = name => `<span class="source-state ${state.status[name].state}"><i></i>${state.status[name].state === 'live' ? 'Ao vivo' : 'Histórico'}</span>`;
 const period = name => esc(state.status[name].period);
 const external = name => `<a class="source-arrow" href="${links[name]}" target="_blank" rel="noopener noreferrer" aria-label="Abrir ${name} na plataforma">↗</a>`;
+const localDay = date => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit' }).format(date);
+const yesterday = () => localDay(new Date(Date.now() - 86400000));
+const shiftDay = (day, count) => new Date(Date.parse(`${day}T12:00:00Z`) + count * 86400000).toISOString().slice(0, 10);
+const rangeLabel = ({ from, to }) => `${from.slice(8, 10)}/${from.slice(5, 7)}–${to.slice(8, 10)}/${to.slice(5, 7)}`;
+const validRange = ({ from, to }) => {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(from) || !/^\d{4}-\d{2}-\d{2}$/.test(to)) return false;
+  const length = Math.round((Date.parse(`${to}T12:00:00Z`) - Date.parse(`${from}T12:00:00Z`)) / 86400000) + 1;
+  return length >= 1 && length <= 90 && to <= yesterday();
+};
 
 function metric(label, value, note, color = 'purple') {
   return `<article class="metric-card ${color}"><div class="metric-card-top"><span>${label}</span><span class="metric-spark" aria-hidden="true">✦</span></div><strong>${value}</strong><small>${note}</small></article>`;
@@ -86,7 +102,7 @@ function youtubeDetail(d) {
   const maxViews = Math.max(...videos.map(video => video.views), 1);
   return `<section class="detail-view youtube-detail" data-view="youtube">
     ${sectionHeader('CANAL EM FOCO', 'YouTube <span>✦</span>', 'youtube', 'Conteúdo, audiência e investimento em um só lugar.')}
-    <div class="channel-hero"><div class="channel-hero-main"><span>INSCRITOS NO CANAL</span><strong>${yt.subscribers == null ? '—' : fmt(yt.subscribers)}</strong><small>Total atual do canal</small></div><div class="channel-hero-side"><div><span>Ganhos no período</span><b>${positive(yt.subscribersGained)}</b></div><div><span>Perdidos no período</span><b>${yt.subscribersLost == null ? '—' : `−${fmt(yt.subscribersLost)}`}</b></div><div><span>Saldo no período</span><b>${yt.subscribersGained == null || yt.subscribersLost == null ? '—' : `${yt.subscribersGained - yt.subscribersLost >= 0 ? '+' : ''}${fmt(yt.subscribersGained - yt.subscribersLost)}`}</b></div></div></div>
+    <div class="channel-hero"><div class="channel-hero-main"><span>INSCRITOS NO CANAL</span><strong>${yt.subscribers == null ? '—' : fmt(yt.subscribers)}</strong><small>Total atual do canal</small></div><div class="channel-hero-side"><div><span>Ganhos no período</span><b>${positive(yt.subscribersGained)}</b></div></div></div>
     <div class="detail-subhead"><div><span class="eyebrow">AUDIÊNCIA</span><h3>Conteúdo em números</h3></div><span>${period('youtube')}</span></div>
     <div class="detail-metrics">${metric('Visualizações totais', short(yt.totalViews), 'Studio · todo o tráfego', 'purple')}${metric('Visualizações orgânicas', fmt(yt.views), 'Sem publicidade', 'green')}${metric('Views de publicidade', short(yt.paidViews), 'Fonte de tráfego do Studio', 'pink')}${metric('Curtidas', fmt(yt.likes), 'Nos vídeos do canal', 'yellow')}${metric('Horas assistidas', hours(yt.totalWatchHours), 'Todo o tráfego', 'purple')}${metric('Horas orgânicas', hours(yt.watchHours), 'Sem publicidade', 'green')}${metric('Duração média', duration(yt.averageViewDuration), 'Por visualização', 'pink')}${metric('Compartilhamentos', fmt(yt.shares), 'Nos vídeos do canal', 'yellow')}</div>
     <article class="panel detail-chart-panel"><div class="panel-heading"><div><span class="eyebrow">EVOLUÇÃO</span><h3>Orgânico × publicidade</h3></div><div class="legend"><span><i class="organic"></i> Orgânico</span><span><i class="paid"></i> Publicidade</span></div></div>${sourceChart(yt.series)}<div class="panel-foot"><span>Visualizações por dia no YouTube Studio</span><span>${period('youtube')}</span></div></article>
@@ -137,8 +153,8 @@ function render() {
         <div class="sidebar-bottom"><div class="orb">✦</div><b>${totalConnections}/4 fontes</b><span>conectadas à API</span></div>
       </aside>
       <main>
-        <header class="topbar"><div class="top-title"><span class="eyebrow">PAINEL DE RESULTADOS</span><h1>Explora Mundo <span>✦</span></h1></div><div class="top-actions"><div class="date-switch" role="group" aria-label="Período">${[7,28,90].map(value => `<button data-days="${value}" class="${days === value ? 'selected' : ''}" aria-pressed="${days === value}">${value} dias</button>`).join('')}</div><button id="refresh" class="refresh" title="Atualizar dados" aria-label="Atualizar dados">${loading ? '◌' : '↻'}</button></div></header>
-        <div class="data-banner"><span class="pulse ${totalConnections ? 'on' : ''}"></span><b>${totalConnections ? `${totalConnections} fonte${totalConnections > 1 ? 's' : ''} atualizando automaticamente` : 'Retrato histórico'}</b><span>${totalConnections ? 'Consulta automática a cada 5 min' : 'As APIs serão ativadas quando as contas forem autorizadas'}</span><button id="connection-detail">Ver fontes ↗</button></div>
+        <header class="topbar"><div class="top-title"><span class="eyebrow">PAINEL DE RESULTADOS</span><h1>Explora Mundo <span>✦</span></h1></div><div class="top-actions"><div class="date-controls"><div class="date-switch" role="group" aria-label="Período">${[7,28,90].map(value => `<button data-days="${value}" class="${!customRange && days === value ? 'selected' : ''}" aria-pressed="${!customRange && days === value}">${value} dias</button>`).join('')}</div><div class="calendar-control"><button id="calendar-toggle" class="calendar-toggle ${customRange ? 'selected' : ''}" aria-expanded="${calendarOpen}" aria-controls="calendar-popover" aria-label="Selecionar período no calendário"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M7 3v4M17 3v4M3 10h18"/></svg><span>${customRange ? rangeLabel(customRange) : 'Calendário'}</span></button>${calendarOpen ? `<form id="calendar-popover" class="calendar-popover"><strong>Escolher período</strong><div class="calendar-fields"><label>De<input id="date-from" name="from" type="date" value="${rangeDraft.from}" max="${yesterday()}" required/></label><label>Até<input id="date-to" name="to" type="date" value="${rangeDraft.to}" max="${yesterday()}" required/></label></div><p>Até ontem · máximo de 90 dias</p>${filterError ? `<div class="calendar-error" role="alert">${filterError}</div>` : ''}<div class="calendar-actions"><button type="button" id="calendar-cancel">Cancelar</button><button type="submit">Aplicar período</button></div></form>` : ''}</div></div><button id="refresh" class="refresh" title="Atualizar dados" aria-label="Atualizar dados">${loading ? '◌' : '↻'}</button></div></header>
+        <div class="data-banner"><span class="pulse ${totalConnections ? 'on' : ''}"></span><b>${loadError ? esc(loadError) : loading ? 'Atualizando período…' : totalConnections ? `${totalConnections} fonte${totalConnections > 1 ? 's' : ''} atualizando automaticamente` : 'Retrato histórico'}</b><span>${totalConnections ? 'Consulta automática a cada 5 min' : 'As APIs serão ativadas quando as contas forem autorizadas'}</span><button id="connection-detail">Ver fontes ↗</button></div>
         <div class="view overview-view ${currentView === 'visao' ? 'visible' : ''}" data-view="visao">
         <section class="overview" aria-label="Indicadores principais">
           ${metric('Orgânico · visualizações', comparableOrganic ? short(organicViews) : '—', comparableOrganic ? 'Instagram + Facebook + YouTube' : 'Fontes em períodos diferentes', 'purple')}
@@ -165,7 +181,40 @@ function render() {
     </div>
     <dialog id="sources-dialog"><div class="dialog-heading"><div><span class="eyebrow">CONEXÕES</span><h2>Fontes de dados</h2></div><button id="close-dialog" aria-label="Fechar">×</button></div>${[['instagram','Instagram · Meta'],['facebook','Facebook · Meta'],['youtube','YouTube Studio'],['ads','Google Ads']].map(([key,label]) => `<div class="source-row"><div><b>${label}</b><span>${period(key)}</span></div>${status(key)}</div>`).join('')}<p>Os números históricos foram consultados em 18/10/2026. Quando a API de uma fonte estiver autorizada, ela passa a atualizar automaticamente.</p></dialog>
   `;
-  document.querySelectorAll('[data-days]').forEach(button => button.addEventListener('click', () => { days = Number(button.dataset.days); render(); refresh(); }));
+  document.querySelectorAll('[data-days]').forEach(button => button.addEventListener('click', () => {
+    days = Number(button.dataset.days);
+    customRange = null;
+    calendarOpen = false;
+    filterError = '';
+    refresh();
+  }));
+  document.querySelector('#calendar-toggle').addEventListener('click', () => {
+    calendarOpen = !calendarOpen;
+    filterError = '';
+    if (calendarOpen) rangeDraft = customRange || (state.period?.from && state.period?.to
+      ? { from: state.period.from, to: state.period.to }
+      : { from: shiftDay(yesterday(), -27), to: yesterday() });
+    render();
+  });
+  if (calendarOpen) {
+    document.querySelectorAll('#calendar-popover input').forEach(input => input.addEventListener('input', () => {
+      rangeDraft[input.name] = input.value;
+    }));
+    document.querySelector('#calendar-cancel').addEventListener('click', () => { calendarOpen = false; render(); });
+    document.querySelector('#calendar-popover').addEventListener('submit', event => {
+      event.preventDefault();
+      rangeDraft = { from: document.querySelector('#date-from').value, to: document.querySelector('#date-to').value };
+      if (!validRange(rangeDraft)) {
+        filterError = 'Escolha até 90 dias, com a data final até ontem.';
+        render();
+        return;
+      }
+      customRange = { ...rangeDraft };
+      calendarOpen = false;
+      filterError = '';
+      refresh();
+    });
+  }
   document.querySelectorAll('[data-network]').forEach(button => button.addEventListener('click', () => { activeNetwork = button.dataset.network; render(); }));
   document.querySelectorAll('.nav-link').forEach(link => link.addEventListener('click', () => { currentView = link.hash.slice(1); render(); window.scrollTo(0, 0); }));
   document.querySelector('#refresh').addEventListener('click', refresh);
@@ -176,19 +225,30 @@ function render() {
 }
 
 async function refresh() {
-  if (loading) return;
+  activeRequest?.abort();
+  const controller = new AbortController();
+  activeRequest = controller;
+  const version = ++requestVersion;
+  const query = new URLSearchParams(customRange || { days });
   loading = true;
-  document.querySelector('#refresh')?.classList.add('spinning');
+  loadError = '';
+  render();
   try {
-    const response = await fetch(`/api/metrics?days=${days}`, { cache: 'no-store' });
+    const response = await fetch(`/api/metrics?${query}`, { cache: 'no-store', signal: controller.signal });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const next = await response.json();
-    if (next?.data && next?.status) state = next;
+    if (version === requestVersion && next?.data && next?.status) state = next;
   } catch (error) {
-    console.warn('API de métricas indisponível:', error.message);
+    if (version === requestVersion && error.name !== 'AbortError') {
+      console.warn('API de métricas indisponível:', error.message);
+      loadError = 'Não foi possível atualizar os dados';
+    }
   } finally {
-    loading = false;
-    render();
+    if (version === requestVersion) {
+      loading = false;
+      activeRequest = null;
+      render();
+    }
   }
 }
 

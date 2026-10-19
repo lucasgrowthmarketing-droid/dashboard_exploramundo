@@ -30,6 +30,23 @@ function range(days) {
   return { from: localDate(start), to: localDate(end) };
 }
 
+function selectedRange(query) {
+  if (query.from != null || query.to != null) {
+    const from = String(query.from || '');
+    const to = String(query.to || '');
+    const validDate = value => /^\d{4}-\d{2}-\d{2}$/.test(value) &&
+      Number.isFinite(Date.parse(`${value}T12:00:00Z`)) &&
+      new Date(`${value}T12:00:00Z`).toISOString().slice(0, 10) === value;
+    if (!validDate(from) || !validDate(to)) return null;
+    const length = Math.round((Date.parse(`${to}T12:00:00Z`) - Date.parse(`${from}T12:00:00Z`)) / 86400000) + 1;
+    const yesterday = localDate(new Date(Date.now() - 86400000));
+    if (length < 1 || length > 90 || to > yesterday) return null;
+    return { from, to };
+  }
+  const days = [7, 28, 90].includes(Number(query.days)) ? Number(query.days) : 28;
+  return range(days);
+}
+
 async function jsonFetch(url, options = {}) {
   const response = await fetch(url, { ...options, signal: AbortSignal.timeout(15000) });
   const body = await response.json();
@@ -68,7 +85,7 @@ async function getYouTube(from, to) {
   });
   const [data, totals, videos] = await Promise.all([
     jsonFetch(`https://youtubeanalytics.googleapis.com/v2/reports?${params}`, { headers: { Authorization: `Bearer ${token}` } }),
-    report({ metrics: 'views,estimatedMinutesWatched,likes,comments,shares,subscribersGained,subscribersLost,averageViewDuration' }),
+    report({ metrics: 'views,estimatedMinutesWatched,likes,comments,shares,subscribersGained,averageViewDuration' }),
     report({ dimensions: 'video', metrics: 'views,estimatedMinutesWatched,likes,comments,shares,subscribersGained', sort: '-views', maxResults: '10' })
   ]);
   const videoRows = (videos.rows || []).map(([id, views, minutes, likes, comments, shares, gained]) => ({
@@ -99,8 +116,8 @@ async function getYouTube(from, to) {
     watchHours: Math.round(organicMinutes / 6) / 10,
     totalViews: number(totals.rows?.[0]?.[0]), totalWatchHours: Math.round(number(totals.rows?.[0]?.[1]) / 6) / 10,
     likes: number(totals.rows?.[0]?.[2]), comments: number(totals.rows?.[0]?.[3]), shares: number(totals.rows?.[0]?.[4]),
-    subscribersGained: number(totals.rows?.[0]?.[5]), subscribersLost: number(totals.rows?.[0]?.[6]),
-    averageViewDuration: number(totals.rows?.[0]?.[7]),
+    subscribersGained: number(totals.rows?.[0]?.[5]),
+    averageViewDuration: number(totals.rows?.[0]?.[6]),
     subscribers: metadata[0].status === 'fulfilled' && metadata[0].value.items?.[0]?.statistics?.subscriberCount != null
       ? number(metadata[0].value.items[0].statistics.subscriberCount) : null,
     videos: videoRows.map(video => ({ ...video,
@@ -239,8 +256,8 @@ async function getFacebook(from, to) {
 
 export default async function handler(request, response) {
   if (request.method !== 'GET') return response.status(405).json({ error: 'Método não permitido' });
-  const days = [7, 28, 90].includes(Number(request.query.days)) ? Number(request.query.days) : 28;
-  const period = range(days);
+  const period = selectedRange(request.query || {});
+  if (!period) return response.status(400).json({ error: 'Selecione datas válidas até ontem, em um intervalo de no máximo 90 dias.' });
   const names = ['instagram', 'facebook', 'youtube', 'ads'];
   const tasks = [
     getInstagram(period.from, period.to), getFacebook(period.from, period.to),

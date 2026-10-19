@@ -2,6 +2,8 @@
 
 Painel de desempenho orgânico do Instagram, Facebook e YouTube e de mídia paga no YouTube. A interface consulta `/api/metrics` ao abrir e a cada cinco minutos. Cada fonte mostra se está ao vivo ou se exibe o último retrato verificado em 18/10/2026.
 
+O filtro permite períodos rápidos de 7, 28 e 90 dias ou datas inicial e final escolhidas no calendário. A API aceita `?from=AAAA-MM-DD&to=AAAA-MM-DD` (datas inclusivas, até ontem, no máximo 90 dias). O cartão de inscritos do YouTube mostra o total atual do canal e os inscritos ganhos no período.
+
 ## Desenvolvimento
 
 ```bash
@@ -19,7 +21,7 @@ O painel pode funcionar com fontes conectadas individualmente. Quando uma consul
 
 ## Fontes e definições
 
-- YouTube orgânico e pago: YouTube Analytics, tráfego de publicidade (`ADVERTISING`) separado dos demais tipos de origem. Inscritos ganhos e perdidos, curtidas, horas e métricas por vídeo vêm do Analytics. Total de inscritos e metadados dos vídeos vêm da YouTube Data API. A tabela por vídeo inclui tráfego total. Views do Studio não são equivalentes a TrueView do Google Ads.
+- YouTube orgânico e pago: YouTube Analytics, tráfego de publicidade (`ADVERTISING`) separado dos demais tipos de origem. Inscritos ganhos, curtidas, horas e métricas por vídeo vêm do Analytics. Total atual de inscritos e metadados dos vídeos vêm da YouTube Data API. A tabela por vídeo inclui tráfego total. Views do Studio não são equivalentes a TrueView do Google Ads.
 - YouTube Ads: Google Ads API, campanhas de vídeo da conta configurada; custo, impressões, cliques, visualizações TrueView e a conversão `YouTube channel subscriptions`. Custo por inscrito usa investimento dividido pelas inscrições atribuídas pelo Ads, que podem diferir dos inscritos ganhos no Studio.
 - Instagram: Meta Graph API, Insights da conta profissional, seguidores atuais e curtidas/comentários atuais de publicações feitas no período selecionado. Esses totais das publicações são acumulados até a consulta, não interações ocorridas somente no período.
 - Facebook: Meta Graph API, Insights diários da Página, reações “curtir” em posts e totais atuais de seguidores e curtidas da Página.
