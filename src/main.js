@@ -31,10 +31,16 @@ let state = snapshot;
 let days = 28;
 let activeNetwork = 'instagram';
 let loading = false;
+let currentView = ['visao', 'youtube', 'instagram', 'facebook'].includes(location.hash.slice(1)) ? location.hash.slice(1) : location.hash === '#pago' ? 'youtube' : 'visao';
 
 const fmt = value => value == null ? '—' : new Intl.NumberFormat('pt-BR').format(value);
+const number = value => Number(value || 0);
 const money = value => value == null ? '—' : new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 2 }).format(value);
 const short = value => value >= 1000000 ? `${new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 1 }).format(value / 1000000)} mi` : value >= 10000 ? `${new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 1 }).format(value / 1000)} mil` : fmt(value);
+const decimal = value => value == null ? '—' : new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 1 }).format(value);
+const duration = seconds => seconds == null ? '—' : `${Math.floor(seconds / 60)}m ${Math.round(seconds % 60)}s`;
+const hours = value => value == null ? '—' : `${decimal(value)}h`;
+const positive = value => value == null ? '—' : `+${fmt(value)}`;
 const esc = value => String(value).replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
 const status = name => `<span class="source-state ${state.status[name].state}"><i></i>${state.status[name].state === 'live' ? 'Ao vivo' : 'Histórico'}</span>`;
 const period = name => esc(state.status[name].period);
@@ -58,6 +64,55 @@ function lineChart(series, key, color) {
   return `<div class="chart-wrap"><svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" role="img" aria-label="Evolução diária"><defs><linearGradient id="area-${key}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${color}" stop-opacity=".24"/><stop offset="1" stop-color="${color}" stop-opacity="0"/></linearGradient></defs><path d="M ${points.join(' L ')} L ${last},${height} L ${first},${height} Z" fill="url(#area-${key})"/><polyline points="${points.join(' ')}" fill="none" stroke="${color}" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg><div class="chart-axis"><span>${esc(series[0]?.day?.slice(5) || '')}</span><span>${esc(series.at(-1)?.day?.slice(5) || '')}</span></div></div>`;
 }
 
+function sectionHeader(eyebrow, title, source, note = '') {
+  return `<div class="detail-heading"><div><span class="eyebrow">${eyebrow}</span><h2>${title}</h2><p>${note}</p></div><div class="detail-heading-right">${status(source)}${external(source)}</div></div>`;
+}
+
+function sourceChart(series) {
+  if (!series?.length) return '<div class="no-data">Ainda não há dados para este período.</div>';
+  const width = 850, height = 220, pad = 10;
+  const max = Math.max(...series.flatMap(row => [number(row.organic), number(row.paid)]), 1);
+  const line = key => series.map((row, index) => {
+    const x = pad + index * (width - 2 * pad) / Math.max(series.length - 1, 1);
+    const y = height - pad - number(row[key]) / max * (height - pad * 2);
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(' ');
+  return `<div class="source-chart"><svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" role="img" aria-label="Visualizações diárias orgânicas e de publicidade"><line x1="0" x2="${width}" y1="${height - pad}" y2="${height - pad}" stroke="#eee6f3"/><polyline points="${line('paid')}" fill="none" stroke="#f274a9" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><polyline points="${line('organic')}" fill="none" stroke="#7fc349" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg><div class="chart-axis"><span>${esc(series[0].day.slice(5))}</span><span>${esc(series.at(-1).day.slice(5))}</span></div></div>`;
+}
+
+function youtubeDetail(d) {
+  const yt = d.youtube, ads = d.ads;
+  const videos = yt.videos || [];
+  const maxViews = Math.max(...videos.map(video => video.views), 1);
+  return `<section class="detail-view youtube-detail" data-view="youtube">
+    ${sectionHeader('CANAL EM FOCO', 'YouTube <span>✦</span>', 'youtube', 'Conteúdo, audiência e investimento em um só lugar.')}
+    <div class="channel-hero"><div class="channel-hero-main"><span>INSCRITOS NO CANAL</span><strong>${yt.subscribers == null ? '—' : fmt(yt.subscribers)}</strong><small>Total atual do canal</small></div><div class="channel-hero-side"><div><span>Ganhos no período</span><b>${positive(yt.subscribersGained)}</b></div><div><span>Perdidos no período</span><b>${yt.subscribersLost == null ? '—' : `−${fmt(yt.subscribersLost)}`}</b></div><div><span>Saldo no período</span><b>${yt.subscribersGained == null || yt.subscribersLost == null ? '—' : `${yt.subscribersGained - yt.subscribersLost >= 0 ? '+' : ''}${fmt(yt.subscribersGained - yt.subscribersLost)}`}</b></div></div></div>
+    <div class="detail-subhead"><div><span class="eyebrow">AUDIÊNCIA</span><h3>Conteúdo em números</h3></div><span>${period('youtube')}</span></div>
+    <div class="detail-metrics">${metric('Visualizações totais', short(yt.totalViews), 'Studio · todo o tráfego', 'purple')}${metric('Visualizações orgânicas', fmt(yt.views), 'Sem publicidade', 'green')}${metric('Views de publicidade', short(yt.paidViews), 'Fonte de tráfego do Studio', 'pink')}${metric('Curtidas', fmt(yt.likes), 'Nos vídeos do canal', 'yellow')}${metric('Horas assistidas', hours(yt.totalWatchHours), 'Todo o tráfego', 'purple')}${metric('Horas orgânicas', hours(yt.watchHours), 'Sem publicidade', 'green')}${metric('Duração média', duration(yt.averageViewDuration), 'Por visualização', 'pink')}${metric('Compartilhamentos', fmt(yt.shares), 'Nos vídeos do canal', 'yellow')}</div>
+    <article class="panel detail-chart-panel"><div class="panel-heading"><div><span class="eyebrow">EVOLUÇÃO</span><h3>Orgânico × publicidade</h3></div><div class="legend"><span><i class="organic"></i> Orgânico</span><span><i class="paid"></i> Publicidade</span></div></div>${sourceChart(yt.series)}<div class="panel-foot"><span>Visualizações por dia no YouTube Studio</span><span>${period('youtube')}</span></div></article>
+    <article class="panel video-panel"><div class="panel-heading"><div><span class="eyebrow">CONTEÚDO</span><h3>Vídeos em destaque</h3></div><span class="table-note">Métricas do período · tráfego total</span></div><div class="video-table"><div class="video-table-head"><span>Vídeo</span><span>Views</span><span>Curtidas</span><span>Horas</span><span>Inscritos</span></div>${videos.length ? videos.map(video => `<a class="video-row" href="https://www.youtube.com/watch?v=${encodeURIComponent(video.id)}" target="_blank" rel="noopener noreferrer"><span class="video-identity"><img src="${esc(video.thumbnail)}" alt="" loading="lazy"/><span><b>${esc(video.title)}</b><small>${video.publishedAt ? esc(new Date(video.publishedAt).toLocaleDateString('pt-BR')) : 'YouTube'}</small></span></span><strong>${fmt(video.views)}</strong><strong>${fmt(video.likes)}</strong><strong>${decimal(video.watchHours)}h</strong><strong>+${fmt(video.subscribersGained)}</strong></a>`).join('') : '<div class="no-data">Sem vídeos com dados neste período.</div>'}</div></article>
+    <div class="detail-subhead paid-detail-title"><div><span class="eyebrow">MÍDIA PAGA</span><h3>Resultado dos anúncios</h3></div>${status('ads')}</div>
+    <div class="detail-metrics paid-detail-metrics">${metric('Investimento', money(ads.spend), 'Google Ads', 'yellow')}${metric('Views TrueView', fmt(ads.views), 'Google Ads', 'pink')}${metric('CPV', ads.views ? money(ads.spend / ads.views) : '—', 'Custo por view do Ads', 'purple')}${metric('Inscrições atribuídas', fmt(ads.subscribers), 'Conversão do Google Ads', 'green')}${metric('Custo por inscrito', ads.subscribers ? money(ads.spend / ads.subscribers) : '—', 'Investimento / inscrições atribuídas', 'yellow')}${metric('Impressões', short(ads.impressions), 'Google Ads', 'pink')}${metric('Cliques', fmt(ads.clicks), 'Google Ads', 'purple')}${metric('CTR', ads.impressions ? `${decimal(ads.clicks / ads.impressions * 100)}%` : '—', 'Cliques / impressões', 'green')}</div>
+    <article class="panel campaign-panel detail-campaigns"><div class="panel-heading"><div><span class="eyebrow">CAMPANHAS</span><h3>Mais visualizadas</h3></div>${external('ads')}</div>${(ads.campaigns || []).length ? ads.campaigns.map((item, index) => `<div class="campaign"><span class="campaign-index">0${index + 1}</span><div><b>${esc(item.name)}</b><span class="bar-track"><i style="width:${Math.max(2, item.views / Math.max(...ads.campaigns.map(row => row.views), 1) * 100)}%"></i></span></div><strong>${fmt(item.views)}</strong><small>${money(item.spend)}</small></div>`).join('') : '<div class="no-data">Sem campanhas no período.</div>'}<div class="panel-foot"><span>${period('ads')}</span><span>As atribuições do Ads podem diferir do Studio</span></div></article>
+  </section>`;
+}
+
+function instagramDetail(d) {
+  const ig = d.instagram;
+  return `<section class="detail-view instagram-detail" data-view="instagram">${sectionHeader('CANAL EM FOCO', 'Instagram <span>✳</span>', 'instagram', 'Audiência, interações e publicações.')}
+    <div class="detail-metrics">${metric('Visualizações', fmt(ig.views), 'Conta · período', 'purple')}${metric('Alcance', fmt(ig.reach), ig.reach == null ? 'Indisponível para 90 dias' : 'Contas alcançadas', 'pink')}${metric('Interações', fmt(ig.interactions), 'Inclui conteúdo e anúncios', 'green')}${metric('Seguidores', fmt(ig.followers), 'Total atual', 'yellow')}${metric('Curtidas nos posts', fmt(ig.postLikes), 'Posts publicados no período', 'pink')}${metric('Comentários', fmt(ig.postComments), 'Posts publicados no período', 'purple')}${metric('Publicações', fmt(ig.postCount), 'No período', 'green')}</div>
+    <div class="social-content-grid"><article class="panel"><div class="panel-heading"><div><span class="eyebrow">EVOLUÇÃO</span><h3>Alcance diário</h3></div></div>${lineChart(ig.series, 'value', '#aa5bc7')}<div class="panel-foot"><span>${period('instagram')}</span></div></article><article class="panel social-posts"><div class="panel-heading"><div><span class="eyebrow">CONTEÚDO</span><h3>Mais curtidos</h3></div></div>${(ig.posts || []).length ? ig.posts.map(post => `<a class="post-row" href="${esc(post.url)}" target="_blank" rel="noopener noreferrer"><span class="post-cover">${post.thumbnail ? `<img src="${esc(post.thumbnail)}" alt="" loading="lazy"/>` : '✳'}</span><span><b>${esc(post.title)}</b><small>${esc(post.date || '')} · ${fmt(post.comments)} ${post.comments === 1 ? 'comentário' : 'comentários'}</small></span><strong>♥ ${fmt(post.likes)}</strong></a>`).join('') : '<div class="no-data">Sem publicações no período.</div>'}<div class="panel-foot"><span>Curtidas e comentários acumulados até agora nas publicações do período</span></div></article></div>
+  </section>`;
+}
+
+function facebookDetail(d) {
+  const fb = d.facebook;
+  return `<section class="detail-view facebook-detail" data-view="facebook">${sectionHeader('CANAL EM FOCO', 'Facebook <span>✳</span>', 'facebook', 'Visibilidade e engajamento da Página.')}
+    <div class="detail-metrics">${metric('Visualizações', fmt(fb.views), 'Página · período', 'purple')}${metric('Interações', fmt(fb.interactions), 'Engajamentos em posts', 'pink')}${metric('Curtidas em posts', fmt(fb.postLikes), 'Reações “curtir” no período', 'green')}${metric('Seguidores', fmt(fb.followers), 'Total atual da Página', 'yellow')}${metric('Curtidas da Página', fmt(fb.pageLikes), 'Total atual', 'purple')}</div>
+    <article class="panel facebook-chart"><div class="panel-heading"><div><span class="eyebrow">EVOLUÇÃO</span><h3>Visualizações diárias</h3></div></div>${lineChart(fb.series, 'value', '#6594df')}<div class="panel-foot"><span>${period('facebook')}</span></div></article>
+  </section>`;
+}
+
 function render() {
   const d = state.data;
   const o = d[activeNetwork];
@@ -78,12 +133,13 @@ function render() {
     <div class="shell">
       <aside class="sidebar">
         <a class="brand" href="#visao" aria-label="Explora Mundo, início"><img src="/logo.png" alt="Explora Mundo"/><span>Explora<br/>Mundo<small>analytics</small></span></a>
-        <nav aria-label="Seções"><a class="nav-link active" href="#visao"><b>◉</b><span>Visão geral</span></a><a class="nav-link" href="#organico"><b>✳</b><span>Orgânico</span></a><a class="nav-link" href="#pago"><b>▶</b><span>Pago</span></a></nav>
+        <nav aria-label="Seções"><a aria-label="Visão geral" class="nav-link ${currentView === 'visao' ? 'active' : ''}" href="#visao"><b>◉</b><span>Visão geral</span></a><a aria-label="YouTube" class="nav-link ${currentView === 'youtube' ? 'active' : ''}" href="#youtube"><b>▶</b><span>YouTube</span></a><a aria-label="Instagram" class="nav-link ${currentView === 'instagram' ? 'active' : ''}" href="#instagram"><b>◎</b><span>Instagram</span></a><a aria-label="Facebook" class="nav-link ${currentView === 'facebook' ? 'active' : ''}" href="#facebook"><b>f</b><span>Facebook</span></a></nav>
         <div class="sidebar-bottom"><div class="orb">✦</div><b>${totalConnections}/4 fontes</b><span>conectadas à API</span></div>
       </aside>
-      <main id="visao">
+      <main>
         <header class="topbar"><div class="top-title"><span class="eyebrow">PAINEL DE RESULTADOS</span><h1>Explora Mundo <span>✦</span></h1></div><div class="top-actions"><div class="date-switch" role="group" aria-label="Período">${[7,28,90].map(value => `<button data-days="${value}" class="${days === value ? 'selected' : ''}" aria-pressed="${days === value}">${value} dias</button>`).join('')}</div><button id="refresh" class="refresh" title="Atualizar dados" aria-label="Atualizar dados">${loading ? '◌' : '↻'}</button></div></header>
         <div class="data-banner"><span class="pulse ${totalConnections ? 'on' : ''}"></span><b>${totalConnections ? `${totalConnections} fonte${totalConnections > 1 ? 's' : ''} atualizando automaticamente` : 'Retrato histórico'}</b><span>${totalConnections ? 'Consulta automática a cada 5 min' : 'As APIs serão ativadas quando as contas forem autorizadas'}</span><button id="connection-detail">Ver fontes ↗</button></div>
+        <div class="view overview-view ${currentView === 'visao' ? 'visible' : ''}" data-view="visao">
         <section class="overview" aria-label="Indicadores principais">
           ${metric('Orgânico · visualizações', comparableOrganic ? short(organicViews) : '—', comparableOrganic ? 'Instagram + Facebook + YouTube' : 'Fontes em períodos diferentes', 'purple')}
           ${metric('YouTube · mídia paga', short(d.youtube.paidViews), `Studio · ${period('youtube')}`, 'pink')}
@@ -100,6 +156,10 @@ function render() {
           <article class="mini-card youtube"><div class="mini-card-head"><span class="platform-icon">▶</span><b>YouTube</b>${status('youtube')}</div><div class="mini-values"><div><strong>${fmt(d.youtube.views)}</strong><span>Orgânicas</span></div><div><strong>${short(d.youtube.paidViews)}</strong><span>Pagas</span></div><div><strong>${fmt(d.youtube.watchHours)}h</strong><span>Exibição orgânica</span></div></div>${external('youtube')}</article>
         </section>
         <section class="paid-section" id="pago"><div class="section-title"><div><span class="eyebrow">MÍDIA PAGA</span><h2>YouTube Ads <span>✦</span></h2></div>${status('ads')}</div><div class="paid-grid"><div class="paid-metrics">${metric('Views TrueView', fmt(d.ads.views), 'Google Ads', 'pink')}${metric('Impressões', short(d.ads.impressions), 'Google Ads', 'purple')}${metric('Cliques', fmt(d.ads.clicks), 'Google Ads', 'green')}${metric('CPV médio', d.ads.views ? money(d.ads.spend / d.ads.views) : '—', 'Custo / view', 'yellow')}</div><article class="panel campaign-panel"><div class="panel-heading"><div><span class="eyebrow">CAMPANHAS</span><h3>Mais visualizadas</h3></div>${external('ads')}</div>${campaigns.length ? campaigns.map((item,index) => `<div class="campaign"><span class="campaign-index">0${index+1}</span><div><b>${esc(item.name)}</b><span class="bar-track"><i style="width:${Math.max(2,item.views / maxCampaign * 100)}%"></i></span></div><strong>${fmt(item.views)}</strong></div>`).join('') : '<div class="no-data">Sem campanhas no período</div>'}<div class="panel-foot"><span>${period('ads')}</span><span>Views do Ads ≠ views do Studio</span></div></article></div></section>
+        </div>
+        <div class="view ${currentView === 'youtube' ? 'visible' : ''}">${youtubeDetail(d)}</div>
+        <div class="view ${currentView === 'instagram' ? 'visible' : ''}">${instagramDetail(d)}</div>
+        <div class="view ${currentView === 'facebook' ? 'visible' : ''}">${facebookDetail(d)}</div>
         <footer id="fontes"><span>Explora Mundo · dados por plataforma</span><a href="/privacidade.html">Privacidade</a><button id="footer-sources">Status das fontes ↗</button></footer>
       </main>
     </div>
@@ -107,6 +167,7 @@ function render() {
   `;
   document.querySelectorAll('[data-days]').forEach(button => button.addEventListener('click', () => { days = Number(button.dataset.days); render(); refresh(); }));
   document.querySelectorAll('[data-network]').forEach(button => button.addEventListener('click', () => { activeNetwork = button.dataset.network; render(); }));
+  document.querySelectorAll('.nav-link').forEach(link => link.addEventListener('click', () => { currentView = link.hash.slice(1); render(); window.scrollTo(0, 0); }));
   document.querySelector('#refresh').addEventListener('click', refresh);
   const dialog = document.querySelector('#sources-dialog');
   document.querySelector('#connection-detail').addEventListener('click', () => dialog.showModal());
@@ -134,3 +195,11 @@ async function refresh() {
 render();
 refresh();
 setInterval(refresh, 5 * 60 * 1000);
+window.addEventListener('hashchange', () => {
+  const next = location.hash.slice(1);
+  if (['visao', 'youtube', 'instagram', 'facebook'].includes(next) && next !== currentView) {
+    currentView = next;
+    render();
+    window.scrollTo(0, 0);
+  }
+});
