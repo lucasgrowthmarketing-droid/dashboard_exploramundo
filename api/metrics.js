@@ -152,16 +152,17 @@ async function getInstagram(from, to) {
   if (!id) throw new Error('ID do Instagram pendente');
   const until = new Date(`${to}T12:00:00Z`);
   until.setUTCDate(until.getUTCDate() + 1);
-  const params = { metric: 'views,reach,total_interactions', period: 'day', since: from, until: until.toISOString().slice(0, 10) };
-  const [insights, account] = await Promise.all([
-    graph(`${id}/insights`, params), graph(id, { fields: 'followers_count' })
+  const span = { period: 'day', since: from, until: until.toISOString().slice(0, 10) };
+  const [totals, dailyReach, account] = await Promise.all([
+    graph(`${id}/insights`, { ...span, metric: 'views,reach,total_interactions', metric_type: 'total_value' }),
+    graph(`${id}/insights`, { ...span, metric: 'reach' }),
+    graph(id, { fields: 'followers_count' })
   ]);
-  const views = insightSeries(insights, 'views');
-  const reach = insightSeries(insights, 'reach');
-  const interactions = insightSeries(insights, 'total_interactions');
+  const total = metric => number(totals.data?.find(entry => entry.name === metric)?.total_value?.value);
   return {
-    views: sum(views, 'value'), reach: sum(reach, 'value'),
-    interactions: sum(interactions, 'value'), followers: number(account.followers_count), series: views
+    views: total('views'), reach: total('reach'),
+    interactions: total('total_interactions'), followers: number(account.followers_count),
+    series: insightSeries(dailyReach, 'reach'), seriesMetric: 'reach'
   };
 }
 
