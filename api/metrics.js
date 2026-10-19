@@ -150,19 +150,25 @@ function insightSeries(response, metric) {
 async function getInstagram(from, to) {
   const id = process.env.META_INSTAGRAM_ID;
   if (!id) throw new Error('ID do Instagram pendente');
-  const until = new Date(`${to}T12:00:00Z`);
-  until.setUTCDate(until.getUTCDate() + 1);
-  const span = { period: 'day', since: from, until: until.toISOString().slice(0, 10) };
-  const [totals, dailyReach, account] = await Promise.all([
-    graph(`${id}/insights`, { ...span, metric: 'views,reach,total_interactions', metric_type: 'total_value' }),
-    graph(`${id}/insights`, { ...span, metric: 'reach' }),
-    graph(id, { fields: 'followers_count' })
+  const addDays = (day, count) => new Date(Date.parse(`${day}T12:00:00Z`) + count * 86400000).toISOString().slice(0, 10);
+  const spans = [];
+  for (let start = from; start <= to; start = addDays(start, 30)) {
+    spans.push({ period: 'day', since: start, until: addDays(start, 30) <= to ? addDays(start, 30) : addDays(to, 1) });
+  }
+  const [account, ...insights] = await Promise.all([
+    graph(id, { fields: 'followers_count' }),
+    ...spans.flatMap(span => [
+      graph(`${id}/insights`, { ...span, metric: 'views,reach,total_interactions', metric_type: 'total_value' }),
+      graph(`${id}/insights`, { ...span, metric: 'reach' })
+    ])
   ]);
-  const total = metric => number(totals.data?.find(entry => entry.name === metric)?.total_value?.value);
+  const totals = insights.filter((_, index) => index % 2 === 0);
+  const dailyReach = insights.filter((_, index) => index % 2 === 1);
+  const total = metric => sum(totals.map(chunk => ({ value: number(chunk.data?.find(entry => entry.name === metric)?.total_value?.value) })), 'value');
   return {
-    views: total('views'), reach: total('reach'),
+    views: total('views'), reach: spans.length === 1 ? total('reach') : null,
     interactions: total('total_interactions'), followers: number(account.followers_count),
-    series: insightSeries(dailyReach, 'reach'), seriesMetric: 'reach'
+    series: dailyReach.flatMap(chunk => insightSeries(chunk, 'reach')), seriesMetric: 'reach'
   };
 }
 
