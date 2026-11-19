@@ -1,0 +1,6 @@
+{
+  "rewrites": [
+    { "source": "/monetizcaoyoutube", "destination": "/monetizcaoyoutube/index.html" },
+    { "source": "/monetizacaoyoutube", "destination": "/monetizcaoyoutube/index.html" }
+  ]
+}

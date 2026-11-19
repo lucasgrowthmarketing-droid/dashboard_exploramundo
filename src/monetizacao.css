@@ -1,0 +1,100 @@
+/* Página /monetizcaoyoutube · mesma identidade do painel (roxo, verde, amarelo, rosa; Baloo 2 + Nunito) */
+.mz .top-actions{gap:6px}
+.mz .panel-heading h3{font-size:26px;color:var(--deep)}
+.mz-hero{background:linear-gradient(115deg,#562587,#7934aa 60%,#9347bb);border-radius:25px;color:#fff;padding:28px 31px;display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:28px;position:relative;overflow:hidden;margin-bottom:6px}
+.mz-hero:after{content:'✦';position:absolute;right:22px;top:-37px;color:#b8e87855;font-size:180px;line-height:1;pointer-events:none}
+.mz-hero-main{display:grid;gap:10px;align-content:center;position:relative;z-index:1;min-width:0}
+.mz-hero-main>span{font-size:10px;font-weight:900;letter-spacing:.14em;color:#e8d8f6}
+.mz-hero-main strong{font:800 clamp(44px,5vw,70px)/1 'Baloo 2',cursive;letter-spacing:-.03em}
+.mz-hero-main strong em{font-style:normal;font-size:.42em;color:#e3cdf4;letter-spacing:0}
+.mz-hero-main small{font-size:11px;color:#eadbf4;max-width:460px;line-height:1.45}
+.mz-progress{height:16px;border-radius:99px;background:#ffffff2b;display:flex;overflow:hidden;max-width:520px}
+.mz-progress i{display:block;height:100%}
+.mz-progress .official{background:#ffd65a}
+.mz-progress .estimate{background:repeating-linear-gradient(135deg,#ffd65a 0 6px,#ffe9a3 6px 12px)}
+.mz-hero-side{display:grid;gap:14px;align-content:center;position:relative;z-index:1}
+.mz-hero-side>div{border-left:1px solid #ffffff50;padding-left:18px;display:grid;gap:2px}
+.mz-hero-side span{font-size:10px;color:#e9d8f6;font-weight:900;letter-spacing:.06em;text-transform:uppercase}
+.mz-hero-side b{font:800 clamp(24px,2.4vw,34px)/1.05 'Baloo 2',cursive}
+.mz-hero-side small{font-size:10px;color:#eadbf4}
+
+.req-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.req{display:grid;gap:6px;padding:19px 21px}
+.req-head{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.req-head b{font-size:12px;color:#81768a}
+.req strong{font:800 32px/1.1 'Baloo 2',cursive;color:#342348}
+.req small{color:#998ea0;font-size:10px;font-weight:800}
+.pill{display:inline-flex;align-items:center;border-radius:99px;padding:4px 10px;font-size:10px;font-weight:900;white-space:nowrap}
+.pill.good{background:#eaf6db;color:#558c28}
+.pill.warn{background:#fff1db;color:#a3641d}
+.pill.bad{background:#fde6ee;color:#b23a67}
+
+.mz-chart{width:100%;height:auto;display:block;min-width:620px}
+.chart-scroll{overflow-x:auto;margin-top:16px}
+.mz-chart .grid{stroke:#eee6f3;stroke-width:1}
+.mz-chart .grid.dashed{stroke-dasharray:3 5}
+.mz-chart .axis{fill:#a99db2;font:800 11px Nunito,sans-serif}
+.mz-chart .axis.pink{fill:#e0679b}
+.mz-chart .axis.red{fill:#b23a67}
+.mz-chart .axis.strong{fill:#64259b;font-weight:900}
+.mz-chart .bar-organic{fill:#7fc349}
+.mz-chart .bar-organic:hover{fill:#5f9f2c}
+.mz-chart .spend-line{fill:none;stroke:#f274a9;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+.mz-chart .after-zone{fill:#f3e9fb;opacity:.55}
+.mz-chart .change-line{stroke:#64259b;stroke-width:2;stroke-dasharray:5 4}
+.mz-chart .goal-line{stroke:#7dbe36;stroke-width:2;stroke-dasharray:6 5}
+.mz-chart .deadline-line{stroke:#e0679b;stroke-width:2}
+.mz-chart .target-line{stroke:#c59ae3;stroke-width:1.5;stroke-dasharray:4 4}
+.mz-chart .proj-area{fill:#8d4bbd;opacity:.1}
+.mz-chart .proj-line{fill:none;stroke:#64259b;stroke-width:3.5;stroke-linecap:round}
+.mz-chart .dot{fill:#64259b}
+.mz-chart .dot.hit{fill:#ffd65a;stroke:#64259b;stroke-width:3}
+.mz-chart .hit-label{fill:#40206e;font:800 15px 'Baloo 2',cursive}
+
+.funnel{display:grid;grid-template-columns:1fr auto 1fr auto 1fr auto 1fr;gap:10px;align-items:stretch;margin-bottom:14px}
+.funnel .step{background:#fff;border:1px solid var(--line);border-radius:21px;padding:17px 18px;display:grid;gap:4px;box-shadow:var(--shadow);min-width:0}
+.funnel .step span{font-size:11px;font-weight:900;color:#81768a}
+.funnel .step b{font:800 clamp(24px,2.3vw,32px)/1.1 'Baloo 2',cursive;color:#342348}
+.funnel .step small{font-size:10px;font-weight:800;color:#998ea0}
+.funnel .step.hl{background:#e9f6d9;border-color:#d6edb6}
+.funnel .step.hl b{color:#43773a}
+.funnel .arrow{display:grid;place-items:center;color:#c59ae3;font:800 26px 'Baloo 2',cursive}
+.small-metrics .metric-card{min-height:118px}
+
+.sim-panel{margin:28px 0 16px}
+.sim-controls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;margin-top:18px}
+.sim-controls label{display:grid;grid-template-columns:1fr auto;gap:8px 12px;align-items:center;background:#f8f4fb;border:1px solid #efe6f4;border-radius:16px;padding:14px 16px}
+.sim-controls span{font-size:12px;font-weight:900;color:#6d5f7b}
+.sim-controls output{font:800 20px/1 'Baloo 2',cursive;color:var(--purple)}
+.sim-controls input{grid-column:1/-1;width:100%;accent-color:#64259b}
+.sim-controls input:focus-visible{outline:3px solid #ad6bdd;outline-offset:3px}
+.sim-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:16px}
+.sim-kpis>div{border-radius:16px;padding:13px 15px;background:#fff;border:1px solid var(--line);display:grid;gap:3px}
+.sim-kpis span{font-size:10px;font-weight:900;color:#8e8199;text-transform:uppercase;letter-spacing:.05em}
+.sim-kpis b{font:800 clamp(19px,1.8vw,25px)/1.1 'Baloo 2',cursive;color:#342348}
+.sim-kpis .verdict.good{background:#eaf6db;border-color:#d6edb6}.sim-kpis .verdict.good b{color:#43773a}
+.sim-kpis .verdict.warn{background:#fff6df;border-color:#ffe6a6}.sim-kpis .verdict.warn b{color:#a3641d}
+.sim-kpis .verdict.bad{background:#fdeaf1;border-color:#f7cddd}.sim-kpis .verdict.bad b{color:#b23a67}
+.table-scroll{overflow-x:auto;margin-top:16px}
+.mz-table{width:100%;border-collapse:collapse;min-width:560px;font-size:12px}
+.mz-table th{text-align:left;color:#aaa0b2;font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.05em;padding:0 10px 9px;border-bottom:1px solid var(--line)}
+.mz-table td{padding:11px 10px;border-bottom:1px solid #f2eef5;font-weight:800;font-variant-numeric:tabular-nums}
+.mz-table tr:last-child td{border-bottom:0}
+.mz-table td:first-child{color:#40206e}
+
+.mz-bottom{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+.mz-bottom .organic-bars{margin-top:22px;gap:16px}
+.mz-bottom .campaign{grid-template-columns:27px minmax(0,1fr) 70px}
+.mz-actions ol{margin:14px 0 4px;padding-left:22px;display:grid;gap:12px;color:#5a4b6b;font-size:13px;line-height:1.55;font-weight:600;max-width:900px}
+.mz-actions b{color:#40206e}
+.mz-actions code{background:#f3e9fb;color:#64259b;border-radius:6px;padding:1px 6px;font-size:12px}
+.mz footer{gap:20px;line-height:1.5}
+.mz footer a{color:var(--purple);font-weight:900;white-space:nowrap}
+.mz-loading{min-height:100vh;display:grid;place-content:center;justify-items:center;gap:14px;color:#81768a;font-weight:900;text-align:center;padding:20px}
+.mz-loading img{width:90px;animation:mzfloat 1.6s ease-in-out infinite}
+@keyframes mzfloat{50%{transform:translateY(-8px)}}
+@media (prefers-reduced-motion:reduce){.mz-loading img{animation:none}}
+
+@media(max-width:1120px){.mz-hero{grid-template-columns:1fr}.mz-hero-side{grid-template-columns:repeat(3,minmax(0,1fr))}.funnel{grid-template-columns:1fr 1fr}.funnel .arrow{display:none}.sim-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.mz-bottom{grid-template-columns:1fr}}
+@media(max-width:760px){.req-grid{grid-template-columns:1fr}.sim-controls{grid-template-columns:1fr}.mz-hero{padding:22px}.mz-hero-side{grid-template-columns:1fr}.mz footer{flex-direction:column;align-items:start}.mz .top-actions{width:auto}}
+@media(max-width:450px){.funnel{grid-template-columns:1fr}.sim-kpis{grid-template-columns:1fr 1fr}.mz-hero-main strong{font-size:44px}}

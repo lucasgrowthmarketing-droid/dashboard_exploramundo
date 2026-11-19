@@ -151,7 +151,7 @@ function render() {
     <div class="shell">
       <aside class="sidebar">
         <a class="brand" href="#visao" aria-label="Explora Mundo, início"><img src="/logo.png" alt="Explora Mundo"/><span>Explora<br/>Mundo<small>analytics</small></span></a>
-        <nav aria-label="Seções"><a aria-label="Visão geral" class="nav-link ${currentView === 'visao' ? 'active' : ''}" href="#visao"><b>◉</b><span>Visão geral</span></a><a aria-label="YouTube" class="nav-link ${currentView === 'youtube' ? 'active' : ''}" href="#youtube"><b>▶</b><span>YouTube</span></a><a aria-label="Instagram" class="nav-link ${currentView === 'instagram' ? 'active' : ''}" href="#instagram"><b>◎</b><span>Instagram</span></a><a aria-label="Facebook" class="nav-link ${currentView === 'facebook' ? 'active' : ''}" href="#facebook"><b>f</b><span>Facebook</span></a></nav>
+        <nav aria-label="Seções"><a aria-label="Visão geral" class="nav-link ${currentView === 'visao' ? 'active' : ''}" href="#visao"><b>◉</b><span>Visão geral</span></a><a aria-label="YouTube" class="nav-link ${currentView === 'youtube' ? 'active' : ''}" href="#youtube"><b>▶</b><span>YouTube</span></a><a aria-label="Instagram" class="nav-link ${currentView === 'instagram' ? 'active' : ''}" href="#instagram"><b>◎</b><span>Instagram</span></a><a aria-label="Facebook" class="nav-link ${currentView === 'facebook' ? 'active' : ''}" href="#facebook"><b>f</b><span>Facebook</span></a><a aria-label="Monetização" class="nav-link" href="/monetizcaoyoutube"><b>$</b><span>Monetização</span></a></nav>
         <div class="sidebar-bottom"><div class="orb">✦</div><b>${totalConnections}/4 fontes</b><span>conectadas à API</span></div>
       </aside>
       <main>
@@ -218,7 +218,7 @@ function render() {
     });
   }
   document.querySelectorAll('[data-network]').forEach(button => button.addEventListener('click', () => { activeNetwork = button.dataset.network; render(); }));
-  document.querySelectorAll('.nav-link').forEach(link => link.addEventListener('click', () => { currentView = link.hash.slice(1); render(); window.scrollTo(0, 0); }));
+  document.querySelectorAll('.nav-link[href^="#"]').forEach(link => link.addEventListener('click', () => { currentView = link.hash.slice(1); render(); window.scrollTo(0, 0); }));
   document.querySelector('#refresh').addEventListener('click', refresh);
   const dialog = document.querySelector('#sources-dialog');
   document.querySelector('#connection-detail').addEventListener('click', () => dialog.showModal());
