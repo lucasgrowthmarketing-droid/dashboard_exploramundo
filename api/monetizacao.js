@@ -70,8 +70,18 @@ async function getYouTube() {
   const report = params => jsonFetch(`https://youtubeanalytics.googleapis.com/v2/reports?${new URLSearchParams({
     ids: `channel==${CHANNEL_ID}`, ...params
   })}`, { headers });
-  const longForm = { filters: 'creatorContentType==VIDEO_ON_DEMAND' };
   const end = daysAgo(1);
+  // A grafia do valor do filtro de vídeos longos varia entre versões da API; usa a primeira aceita.
+  let longForm = null;
+  let lastError = null;
+  for (const value of ['videoOnDemand', 'VIDEO_ON_DEMAND', 'video_on_demand']) {
+    try {
+      await report({ filters: `creatorContentType==${value}`, startDate: end, endDate: end, metrics: 'views' });
+      longForm = { filters: `creatorContentType==${value}` };
+      break;
+    } catch (error) { lastError = error; }
+  }
+  if (!longForm) throw lastError;
   const [daily, yearly, channel] = await Promise.all([
     report({ ...longForm, startDate: daysAgo(90), endDate: end, dimensions: 'day,insightTrafficSourceType', metrics: 'views,estimatedMinutesWatched', sort: 'day' }),
     report({ ...longForm, startDate: daysAgo(365), endDate: end, dimensions: 'insightTrafficSourceType', metrics: 'views,estimatedMinutesWatched' }),
