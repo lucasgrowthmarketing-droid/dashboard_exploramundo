@@ -260,7 +260,7 @@ function render() {
         <article class="panel campaign-panel">
           <div class="panel-heading"><div><span class="eyebrow">ÚLTIMOS 7 DIAS</span><h3>Campanhas</h3></div></div>
           ${campaigns.length ? campaigns.map((c, i) => `<div class="campaign"><span class="campaign-index">0${i + 1}</span><div><b>${esc(c.name.replace(/\[EM\] \[ENGAJ\] \[YT\] ?-? ?/g, ''))}</b><span class="bar-track"><i style="width:${Math.max(3, (c.spend || c.views) / maxCampaign * 100)}%"></i></span></div><strong>${c.spend ? money(c.spend, 0) : fmt(c.views)}</strong></div>`).join('') : '<div class="no-data">Sem campanhas no período.</div>'}
-          <div class="panel-foot"><span>Todas as campanhas levam para um vídeo longo dentro da playlist (URL final com &amp;list=). Por isso até as de Shorts geram horas que contam.</span></div>
+          <div class="panel-foot"><span>As campanhas ativas foram editadas em 13/11 para levar a um vídeo longo dentro da playlist (URL final com &amp;list=). Por isso até as de Shorts passaram a gerar horas que contam. Confira as demais antes de reativar.</span></div>
         </article>
       </div>
 
